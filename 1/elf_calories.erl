@@ -62,4 +62,4 @@ most_calories(X, DescEachElfSnackCounts) ->
 
 %% Spoilers:
 %% Part1: answer 71300
-%% Part2: answer
+%% Part2: answer 209691
