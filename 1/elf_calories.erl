@@ -31,9 +31,7 @@ elf_snack_count(ElfCalories) when is_list(ElfCalories) ->
         end,
         0,
         ElfCalories
-    );
-elf_snack_count(ElfCalories) when is_binary(ElfCalories) ->
-    lists:sum(binary_to_integer(ElfCalories)).
+    ).
 
 top_x_calorie_count(X, DescEachElfSnackCounts) when X > 0 ->
     most_calories(X, DescEachElfSnackCounts).
