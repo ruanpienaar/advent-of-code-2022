@@ -6,14 +6,22 @@
 
 who_has_the_most_calories() ->
     {ok, B} = file:read_file("elf_calories.txt"),
-    most_calories(each_elf_calories(binary:split(B, <<"\n\n">>, [global]))).
+    top_x_calorie_count(
+        _X=3,
+        each_elf_calories_sorted_desc(binary:split(B, <<"\n\n">>, [global]))
+    ).
 
-each_elf_calories(EachElfCalories) ->
-    lists:map(
-        fun(ElfCalories) ->
-            elf_snack_count(binary:split(ElfCalories, <<"\n">>, [global]))
+each_elf_calories_sorted_desc(EachElfCalories) ->
+    lists:sort(
+        fun(A, B) ->
+            A > B
         end,
-        EachElfCalories
+        lists:map(
+            fun(ElfCalories) ->
+                elf_snack_count(binary:split(ElfCalories, <<"\n">>, [global]))
+            end,
+            EachElfCalories
+        )
     ).
 
 elf_snack_count(ElfCalories) when is_list(ElfCalories) ->
@@ -27,8 +35,31 @@ elf_snack_count(ElfCalories) when is_list(ElfCalories) ->
 elf_snack_count(ElfCalories) when is_binary(ElfCalories) ->
     lists:sum(binary_to_integer(ElfCalories)).
 
-most_calories(EachElfSnackCounts) ->
-    lists:max(EachElfSnackCounts).
+top_x_calorie_count(X, DescEachElfSnackCounts) when X > 0 ->
+    most_calories(X, DescEachElfSnackCounts).
+
+most_calories(0, _DescEachElfSnackCounts) ->
+    0;
+most_calories(X, DescEachElfSnackCounts) ->
+    lists:nth(X, DescEachElfSnackCounts) + most_calories(X-1, DescEachElfSnackCounts).
 
 
-%% Spoilers: FIrst part answer 71300
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Spoilers:
+%% Part1: answer 71300
+%% Part2: answer
