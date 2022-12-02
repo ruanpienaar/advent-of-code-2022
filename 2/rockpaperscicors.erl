@@ -2,10 +2,6 @@
 
 -export([run/0]).
 
-%  X means you need to lose,
-%  Y means you need to end the round in a draw,
-%  and Z means you need to win
-
 run() ->
     calculate_round_scores(file:open("input.txt", [read, read_ahead, binary])).
 
