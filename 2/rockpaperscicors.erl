@@ -2,6 +2,10 @@
 
 -export([run/0]).
 
+%  X means you need to lose,
+%  Y means you need to end the round in a draw,
+%  and Z means you need to win
+
 run() ->
     calculate_round_scores(file:open("input.txt", [read, read_ahead, binary])).
 
@@ -13,7 +17,7 @@ calculte_round_score(_FPID, eof) ->
 calculte_round_score(FPID, {ok, Line}) ->
     {ok, OpponentInput, MyInput} = get_player_inputs(Line),
     OpponentChoice = input_to_shape(OpponentInput),
-    MyChoice = input_to_shape(MyInput),
+    MyChoice = get_my_choice(OpponentChoice, MyInput),
     my_score(
         OpponentChoice,
         MyChoice
@@ -48,6 +52,13 @@ winable_choice(paper) ->
 winable_choice(scissor) ->
     rock.
 
+losing_choice(paper) ->
+    rock;
+losing_choice(scissor) ->
+    paper;
+losing_choice(rock) ->
+    scissor.
+
 shape_score(rock) ->
     1;
 shape_score(paper) ->
@@ -55,15 +66,27 @@ shape_score(paper) ->
 shape_score(scissor) ->
     3.
 
-input_to_shape(Choice)
-        when Choice =:= $A orelse
-             Choice =:= $X ->
+input_to_shape($A) ->
     rock;
-input_to_shape(Choice)
-        when Choice =:= $B orelse
-             Choice =:= $Y ->
+input_to_shape($B) ->
     paper;
-input_to_shape(Choice)
-        when Choice =:= $C orelse
-             Choice =:= $Z ->
+input_to_shape($C) ->
     scissor.
+
+get_my_choice(OpponentChoice, MyInput) ->
+    MyInstruction = input_to_decision(MyInput),
+    instruction_to_choice(OpponentChoice, MyInstruction).
+
+instruction_to_choice(OpponentChoice, lose) ->
+    losing_choice(OpponentChoice);
+instruction_to_choice(OpponentChoice, win) ->
+    winable_choice(OpponentChoice);
+instruction_to_choice(OpponentChoice, draw) ->
+    OpponentChoice.
+
+input_to_decision($X) ->
+    lose;
+input_to_decision($Y) ->
+    draw;
+input_to_decision($Z) ->
+    win.
