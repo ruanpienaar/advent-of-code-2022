@@ -1,50 +1,48 @@
 -module(rucksack).
 
--export([run/0, letter_prio/1]).
-
-% Every item type is identified by a single lowercase or uppercase letter (that is, a and A refer to different types of items).
-
-% priority:
-% Lowercase item types a through z have priorities 1 through 26.
-% Uppercase item types A through Z have priorities 27 through 52.
-
-% Find the item type that appears in both compartments of each rucksack.
-% What is the sum of the priorities of those item types?
+-export([run/0, compare_compartment_items/4]).
 
 run() ->
     {ok, FPID} = file:open("input.txt", [read, read_ahead]),
-    each_rucksack(FPID, file:read_line(FPID)).
+    group_rucksack(FPID, get_group_rucksacks(FPID)).
 
-each_rucksack(_, eof) ->
+group_rucksack(_, [eof, _, _]) ->
     0;
-each_rucksack(FPID, {ok, Line}) ->
-    shared_items(Line--"\n") + each_rucksack(FPID, file:read_line(FPID)).
+group_rucksack(FPID, [{ok, Line1}, {ok, Line2}, {ok, Line3}]) ->
+    shared_items(
+        truncate_lf(Line1),
+        truncate_lf(Line2),
+        truncate_lf(Line3)
+    ) +
+    group_rucksack(FPID, get_group_rucksacks(FPID)).
 
-shared_items(Line) ->
-    compare_compartment_items(compartment_props(Line), {0, []}).
+truncate_lf(Line) ->
+    Line--"\n".
 
-compartment_props(Line) ->
-    CompartmentLength = length(Line) div 2,
-    {Compartment1, Compartment2} = lists:split(CompartmentLength, Line),
-    Compartment1Prop = lists:zip(Compartment1, lists:duplicate(CompartmentLength, 0)),
-    Compartment2Prop = lists:zip(Compartment2, lists:duplicate(CompartmentLength, 0)),
-    {Compartment1Prop, Compartment2Prop}.
+get_group_rucksacks(FPID) ->
+    [file:read_line(FPID), file:read_line(FPID), file:read_line(FPID)].
 
-compare_compartment_items({[], _}, {Total, _}) ->
+shared_items(Line1, Line2, Line3) ->
+    compare_compartment_items(Line1, Line2, Line3, {0, []}).
+
+compare_compartment_items([], _, _, {Total, _}) ->
     Total;
-compare_compartment_items({[{Item, _} | T], Compartment2Prop}, {Total, AllreadyFound}) ->
+compare_compartment_items([H | T], Line2, Line3, {Total, AllreadyFound}) ->
     compare_compartment_items(
-        {T, Compartment2Prop},
-        case
-            not lists:member(Item, AllreadyFound) andalso
-            lists:keyfind(Item, 1, Compartment2Prop) /= false
-        of
+        T,
+        Line2,
+        Line3,
+        case similar_item(H, AllreadyFound, Line2, Line3) of
             false ->
                 {Total, AllreadyFound};
             true ->
-                {Total + letter_prio(Item), [Item] ++ AllreadyFound}
+                {Total + letter_prio(H), [H] ++ AllreadyFound}
         end
     ).
+
+similar_item(H, AllreadyFound, Line2, Line3) ->
+    not lists:member(H, AllreadyFound) andalso
+    lists:member(H, Line2) andalso lists:member(H, Line3).
 
 letter_prio(UpperCase) when UpperCase >= 65 andalso UpperCase =< 90 ->
     (UpperCase - $A) + 27;
