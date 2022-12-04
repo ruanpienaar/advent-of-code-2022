@@ -1,6 +1,7 @@
 -module(cleanup).
 
 -export([run/0]).
+
 run() ->
     {ok, FPID} = file:open("input.txt", [read, read_ahead, binary]),
     check_elf_pair_assignments(FPID, file:read_line(FPID)).
