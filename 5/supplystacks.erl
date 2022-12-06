@@ -6,6 +6,8 @@
 ]).
 
 run() ->
+    % "CMZ = get_elf_message("test-input.txt").
+    % "MCD" = get_elf_message("test-input2.txt").
     get_elf_message("input.txt").
 
 get_elf_message(Filename) ->
@@ -17,32 +19,38 @@ get_elf_message(Filename) ->
 
 get_stacks(F) ->
     [LastLine | RevStackLines] = get_stack_lines(F, file:read_line(F)),
-    StackLines = lists:reverse(RevStackLines),
     StackCount = list_to_integer([lists:last(LastLine--"\n")]),
-    Queues = lists:foldl(
-        fun(C, A) ->
-            A#{ C => queue:new() }
-        end,
-        #{},
-        lists:seq(1, StackCount)
-    ),
-    Queues2 =
-        check_each_stack_column(
-            Queues,
-            StackLines,
-            1,
-            StackCount
-        ),
     {
         StackCount,
-        Queues2
+        check_each_stack_column(
+            create_empty_stacks(),
+            lists:reverse(RevStackLines),
+            1,
+            StackCount
+        )
     }.
 
-check_each_stack_column(Queues, _StackLines, Column, StackCount) when Column > StackCount ->
+create_empty_stacks() ->
+    lists:foldl(
+        fun(C, A) -> A#{ C => queue:new() } end,
+        #{},
+        lists:seq(1, StackCount)
+    ).
+
+% print_stacks(Queues) ->
+%     maps:map(
+%         fun(Column, Q) ->
+%             io:format("~p : ~p\n", [Column, Q])
+%         end,
+%         Queues
+%     ).
+
+check_each_stack_column(Queues, _StackLines, Column, StackCount)
+        when Column > StackCount ->
     Queues;
 check_each_stack_column(Queues, StackLines, Column, StackCount) ->
     ColumnPos = get_letter_pos(Column),
-    Queues2 =
+    check_each_stack_column(
         lists:foldl(
             fun(Line, AQ) ->
                 AQ#{
@@ -57,7 +65,10 @@ check_each_stack_column(Queues, StackLines, Column, StackCount) ->
             Queues,
             StackLines
         ),
-    check_each_stack_column(Queues2, StackLines, Column + 1, StackCount).
+        StackLines,
+        Column + 1,
+        StackCount
+    ).
 
 get_letter_pos(Column) ->
     Column * 3 + (Column - 2).
@@ -96,7 +107,11 @@ get_instruction_line(MP, F, {ok, Line}) ->
         get_instruction_line(MP, F, file:read_line(F))
     ).
 
-run_instructions_on_stack({StackCount, Stacks}, []) ->
+run_instructions_on_stack(
+        {StackCount, Stacks},
+        []
+    ) ->
+    %_ = print_stacks(Stacks),
     lists:map(
         fun(C) ->
             {{value, V}, _} = queue:out(maps:get(C, Stacks)),
@@ -104,21 +119,31 @@ run_instructions_on_stack({StackCount, Stacks}, []) ->
         end,
         lists:seq(1, StackCount)
     );
-run_instructions_on_stack({StackCount, Stacks}, [[Amount, From, To] | Instructions]) ->
-    TakingStack = maps:get(From, Stacks),
-    GivingStack = maps:get(To, Stacks),
-    {TakingStack2, GvingStack2} =
+run_instructions_on_stack(
+        {StackCount, Stacks},
+        [[Amount, From, To] | Instructions]
+    ) ->
+    {TakingStack2, Took} =
         lists:foldl(
-            fun(_, {TSA, GSA}) ->
+            fun(_, {TSA, TA}) ->
                 {{value, I}, TSA2} = queue:out(TSA),
-                GSA2 = queue:in_r(I, GSA),
-                {TSA2, GSA2}
+                {TSA2, [I|TA]}
             end,
-            {TakingStack, GivingStack},
+            {maps:get(From, Stacks), []},
             lists:seq(1, Amount)
         ),
-    Stacks2 = Stacks#{
-        From => TakingStack2,
-        To => GvingStack2
-    },
-    run_instructions_on_stack({StackCount, Stacks2}, Instructions).
+    run_instructions_on_stack(
+        {StackCount, Stacks#{
+            From =>
+                TakingStack2,
+            To =>
+                lists:foldl(
+                    fun(I, GSA) ->
+                        queue:in_r(I, GSA)
+                    end,
+                    maps:get(To, Stacks),
+                    Took
+                )
+        }},
+        Instructions
+    ).
