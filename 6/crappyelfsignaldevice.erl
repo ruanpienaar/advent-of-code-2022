@@ -5,15 +5,16 @@
     is_marker/1
 ]).
 
+-define(MARKER_LENGTH, 14).
+
 run() ->
     find_first_marker(file:read_file("input.txt")).
 
 find_first_marker({ok, Data}) ->
-    MarkerLength = 4,
-    {ok, NextChars, Rest} = next_x_chars(MarkerLength, Data),
-    check_next_char(is_marker(NextChars), MarkerLength, NextChars, Rest).
+    {ok, NextChars, Rest} = next_x_chars(?MARKER_LENGTH, Data),
+    check_next_char(is_marker(NextChars), ?MARKER_LENGTH, NextChars, Rest).
 
-check_next_char(_, Pos, _PossibleMarker, <<>>) ->
+check_next_char(_, _Pos, _PossibleMarker, <<>>) ->
     0;
 check_next_char(true, Pos, _PossibleMarker, _Rest) ->
     Pos;
@@ -27,9 +28,8 @@ check_next_char(false, Pos, PossibleMarker, Rest) ->
     check_next_char(is_marker(NextPossibleMarker), Pos+1, NextPossibleMarker, NewRest).
 
 next_x_chars(Chars, Line) ->
-    io:format("Line : ~p\n", [Line]),
     <<NextChars:Chars/binary, Rest/binary>> = Line,
     {ok, NextChars, Rest}.
 
-is_marker(<<A:1/binary, B:1/binary, C:1/binary, D:1/binary>>) ->
-    length(lists:uniq([A, B, C, D])) =:= 4.
+is_marker(<<X:?MARKER_LENGTH/binary>>) ->
+    length(lists:uniq([ C || <<C:1/binary>> <= X ])) =:= MARKER_LENGTH.
