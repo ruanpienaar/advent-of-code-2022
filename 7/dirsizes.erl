@@ -5,10 +5,11 @@
     all_parent_dirs/1
 ]).
 
+-define(DISK_TOTAL, 70000000).
+-define(MINIMUM, 30000000).
 
 run() ->
-    % 95437 =
-    count_all_below_x_size(
+    find_smallest_dir_to_delete(
         maps:get(
             sizes,
             aggregate_outputs(
@@ -26,21 +27,26 @@ run() ->
                     sizes => [{<<"/">>, {dir, [], 0}}]
                 }
             )
-        ),
-        100000
+        )
     ).
 
-count_all_below_x_size(Sizes, Ceil) ->
-    lists:foldl(
-        fun
-        ({_,{dir, _, Size}}, A) when Size =< Ceil ->
-            A + Size;
-        (_, A) ->
-            A
-        end,
-        0,
-        Sizes
-    ).
+find_smallest_dir_to_delete(Sizes) ->
+    {value, {<<"/">>, {dir, [], TotalSizeOnDisk}}, Sizes2} = lists:keytake(<<"/">>, 1, Sizes),
+    SizeToFreeUp = ?MINIMUM - (?DISK_TOTAL - TotalSizeOnDisk),
+    SortedDirs = lists:sort(
+        fun({_, {dir, _, A}}, {_, {dir, _, B}}) -> A < B end,
+        lists:filter(
+            fun
+            ({_, {dir, _, Size}}) when Size >= SizeToFreeUp ->
+                true;
+            (_) ->
+                false
+            end,
+            Sizes2
+        )
+    ),
+    {_, {_, _, SmallestDirSize}} = hd(SortedDirs),
+    SmallestDirSize.
 
 read_lines({ok, FPID}) ->
     read_line(FPID, file:read_line(FPID), []).
