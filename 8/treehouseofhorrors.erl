@@ -1,16 +1,16 @@
 -module(treehouseofhorrors).
 
--export([run/0]).
+-export([
+    run/0,
+    get_scenic_score/3
+]).
 
 run() ->
     {ok, FPID} =
         file:open(
-            % "test-input.txt",
             "input.txt",
             [read, read_ahead, binary]
         ),
-    % 21 =
-    1672 =
     visible_trees(
         create_matrix(
             FPID,
@@ -23,9 +23,7 @@ run() ->
 visible_trees(Matrix) ->
     L = length(Matrix),
     Max = L-1,
-    EdgeCount = L + (Max) + (Max) + (Max-1), % Sucky!
-    InnerCount = visible_tree_scan(Matrix, Max, 0),
-    EdgeCount + InnerCount.
+    _InnerCount = visible_tree_scan(Matrix, Max, 0).
 
 create_matrix(_FPID, eof, Matrix, _RowCount) ->
     lists:reverse(Matrix);
@@ -42,16 +40,16 @@ create_row(End, Row, _) when End == <<>> orelse End == <<"\n">> ->
 create_row(<<Char/integer, Rest/binary>>, Row, ColCount) ->
     create_row(Rest, [Char-48 | Row] , ColCount+1).
 
-visible_tree_scan(Matrix, Max, VisibleCount) ->
-    scan(Matrix, {2, 2}, Max, VisibleCount).
+visible_tree_scan(Matrix, Max, HighestScenicScore) ->
+    scan(Matrix, {2, 2}, Max, HighestScenicScore).
 
-scan(_Matrix, _Pos={X, Y}, Max, VisibleCount) when Y > Max ->
-    VisibleCount;
-scan(Matrix, _Pos={X, Y}, Max, VisibleCount) when X > Max ->
-    scan(Matrix, {2, Y+1}, Max, VisibleCount);
-scan(Matrix, Pos={X, Y}, Max, VisibleCount) ->
+scan(_Matrix, {_X, Y}, Max, HighestScenicScore) when Y > Max ->
+    HighestScenicScore;
+scan(Matrix, {X, Y}, Max, HighestScenicScore) when X > Max ->
+    scan(Matrix, {2, Y+1}, Max, HighestScenicScore);
+scan(Matrix, {X, Y}, Max, HighestScenicScore) ->
     Row = lists:nth(Y, Matrix),
-    PosValue = lists:nth(X, Row),
+    TreeHeight = lists:nth(X, Row),
     Column =
         lists:map(
             fun(Xmap) -> lists:nth(X, lists:nth(Xmap, Matrix)) end,
@@ -59,29 +57,48 @@ scan(Matrix, Pos={X, Y}, Max, VisibleCount) ->
         ),
     [Left, Right] = split_and_remove_cell(X, Row),
     [Top, Bottom] = split_and_remove_cell(Y, Column),
+
+    ScenicScore =
+        get_scenic_score(TreeHeight, left, Left) *
+        get_scenic_score(TreeHeight, right, Right) *
+        get_scenic_score(TreeHeight, top, Top) *
+        get_scenic_score(TreeHeight, bottom, Bottom),
+
+    NewHighestScenicScore =
+        case ScenicScore > HighestScenicScore of
+            true ->
+                ScenicScore;
+            false ->
+                HighestScenicScore
+        end,
     scan(
         Matrix,
         {X+1, Y},
         Max,
-        increment(
-            PosValue > lists:max(Left) orelse
-            PosValue > lists:max(Right) orelse
-            PosValue > lists:max(Top) orelse
-            PosValue > lists:max(Bottom),
-            VisibleCount
-        )
+        NewHighestScenicScore
     ).
 
-increment(true, VisibleCount) ->
-    VisibleCount+1;
-increment(false, VisibleCount) ->
-    VisibleCount.
+get_scenic_score(TreeHeight, Direction, DirectionList) ->
+    LookingOrder = get_looking_order(Direction, DirectionList),
+    looking_distance(TreeHeight, LookingOrder, 0).
+
+looking_distance(TreeHeight, [LookingTreeHeight|_RestTrees], R) when LookingTreeHeight >= TreeHeight ->
+    R+1;
+looking_distance(TreeHeight, [LookingTreeHeight|RestTrees], R) when LookingTreeHeight < TreeHeight ->
+    looking_distance(TreeHeight, RestTrees, R+1);
+looking_distance(_TreeHeight, [], R) ->
+    R.
+
+get_looking_order(Direction, DirectionList) when Direction =:= left orelse Direction =:= top ->
+    lists:reverse(DirectionList);
+get_looking_order(Direction, DirectionList) when Direction =:= right orelse Direction =:= bottom ->
+    DirectionList.
 
 split_and_remove_cell(SplitAndRemovePos, List) ->
     {_, {Tfel, Thgir}, _} =
         lists:foldl(
             fun
-            (C, {Pos, {LeftAcc, RightAcc}, left}) when Pos =:= SplitAndRemovePos ->
+            (_C, {Pos, {LeftAcc, RightAcc}, left}) when Pos =:= SplitAndRemovePos ->
                 {Pos+1, {LeftAcc, RightAcc}, right};
             (C, {Pos, {LeftAcc, RightAcc}, Direction}) ->
                 {Pos+1, direction_append(Direction, C, {LeftAcc, RightAcc}), Direction}
