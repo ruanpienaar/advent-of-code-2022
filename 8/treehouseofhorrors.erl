@@ -21,9 +21,8 @@ run() ->
     ).
 
 visible_trees(Matrix) ->
-    L = length(Matrix),
-    Max = L-1,
-    _InnerCount = visible_tree_scan(Matrix, Max, 0).
+    Max = length(Matrix)-1,
+    visible_tree_scan(Matrix, Max, 0).
 
 create_matrix(_FPID, eof, Matrix, _RowCount) ->
     lists:reverse(Matrix);
@@ -57,48 +56,48 @@ scan(Matrix, {X, Y}, Max, HighestScenicScore) ->
         ),
     [Left, Right] = split_and_remove_cell(X, Row),
     [Top, Bottom] = split_and_remove_cell(Y, Column),
-
     ScenicScore =
         get_scenic_score(TreeHeight, left, Left) *
         get_scenic_score(TreeHeight, right, Right) *
         get_scenic_score(TreeHeight, top, Top) *
         get_scenic_score(TreeHeight, bottom, Bottom),
-
-    NewHighestScenicScore =
+    scan(
+        Matrix,
+        {X+1, Y},
+        Max,
         case ScenicScore > HighestScenicScore of
             true ->
                 ScenicScore;
             false ->
                 HighestScenicScore
-        end,
-    scan(
-        Matrix,
-        {X+1, Y},
-        Max,
-        NewHighestScenicScore
+        end
     ).
 
 get_scenic_score(TreeHeight, Direction, DirectionList) ->
-    LookingOrder = get_looking_order(Direction, DirectionList),
-    looking_distance(TreeHeight, LookingOrder, 0).
+    looking_distance(TreeHeight, get_looking_order(Direction, DirectionList), 0).
 
-looking_distance(TreeHeight, [LookingTreeHeight|_RestTrees], R) when LookingTreeHeight >= TreeHeight ->
+looking_distance(TreeHeight, [LookingTreeHeight|_RestTrees], R)
+        when LookingTreeHeight >= TreeHeight ->
     R+1;
-looking_distance(TreeHeight, [LookingTreeHeight|RestTrees], R) when LookingTreeHeight < TreeHeight ->
+looking_distance(TreeHeight, [LookingTreeHeight|RestTrees], R)
+        when LookingTreeHeight < TreeHeight ->
     looking_distance(TreeHeight, RestTrees, R+1);
 looking_distance(_TreeHeight, [], R) ->
     R.
 
-get_looking_order(Direction, DirectionList) when Direction =:= left orelse Direction =:= top ->
+get_looking_order(Direction, DirectionList)
+        when Direction =:= left orelse Direction =:= top ->
     lists:reverse(DirectionList);
-get_looking_order(Direction, DirectionList) when Direction =:= right orelse Direction =:= bottom ->
+get_looking_order(Direction, DirectionList)
+        when Direction =:= right orelse Direction =:= bottom ->
     DirectionList.
 
 split_and_remove_cell(SplitAndRemovePos, List) ->
     {_, {Tfel, Thgir}, _} =
         lists:foldl(
             fun
-            (_C, {Pos, {LeftAcc, RightAcc}, left}) when Pos =:= SplitAndRemovePos ->
+            (_C, {Pos, {LeftAcc, RightAcc}, left})
+                    when Pos =:= SplitAndRemovePos ->
                 {Pos+1, {LeftAcc, RightAcc}, right};
             (C, {Pos, {LeftAcc, RightAcc}, Direction}) ->
                 {Pos+1, direction_append(Direction, C, {LeftAcc, RightAcc}), Direction}
