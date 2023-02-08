@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-	"bytes"
+	"strconv"
 )
 
 func main() {
@@ -13,32 +14,25 @@ func main() {
 func process_file(filename string) {
 	fmt.Printf("File to use is: %s\n", filename)
 	fileBytes, err := os.ReadFile(filename)
-
 	if err != nil {
 		panic("could not read file")
 	}
-	// fmt.Println( )
-
-
-	x, y, moreTokensFound := bytes.Cut(fileBytes, []byte("\n") )
-	fmt.Println(x, y)
+	var calorieCount int = 0
+	var mostCalories int = 0
+	var moreTokensFound bool = true
 	for moreTokensFound == true {
-		x, y, moreTokensFound := bytes.Cut(y, []byte("\n") )
-		fmt.Println(x, y)
+		x, y, moreFound := bytes.Cut(fileBytes, []byte("\n"))
+		i, _ := strconv.Atoi(string(x))
+		calorieCount += i
+		// fmt.Println(calorieCount)
+		if len(x) == 0 {
+			if calorieCount > mostCalories {
+				mostCalories = calorieCount
+			}
+			calorieCount = 0
+		}
+		fileBytes = y
+		moreTokensFound = moreFound
 	}
-
-	// show := func(s, sep string) {
-	// 	before, after, found := bytes.Cut([]byte(s), []byte(sep))
-	// 	fmt.Printf("Cut(%q, %q) = %q, %q, %v\n", s, sep, before, after, found)
-	// }
-	// show("Gopher", "Go")
-	// show("Gopher", "ph")
-	// show("Gopher", "er")
-	// show("Gopher", "Badger")
-
-	// Cut("Gopher", "Go") = "", "pher", true
-	// Cut("Gopher", "ph") = "Go", "er", true
-	// Cut("Gopher", "er") = "Goph", "", true
-	// Cut("Gopher", "Badger") = "Gopher", "", false
-
+	fmt.Println(mostCalories)
 }
