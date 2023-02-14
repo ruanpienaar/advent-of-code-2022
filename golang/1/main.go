@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 )
 
@@ -17,22 +18,22 @@ func process_file(filename string) {
 	if err != nil {
 		panic("could not read file")
 	}
+	var topX []int
 	var calorieCount int = 0
-	var mostCalories int = 0
 	var moreTokensFound bool = true
 	for moreTokensFound == true {
 		x, y, moreFound := bytes.Cut(fileBytes, []byte("\n"))
 		i, _ := strconv.Atoi(string(x))
 		calorieCount += i
-		// fmt.Println(calorieCount)
 		if len(x) == 0 {
-			if calorieCount > mostCalories {
-				mostCalories = calorieCount
-			}
+			topX = append(topX, calorieCount)
+			fmt.Println(topX)
 			calorieCount = 0
 		}
 		fileBytes = y
 		moreTokensFound = moreFound
 	}
-	fmt.Println(mostCalories)
+	sort.Ints(topX)
+	topThree := topX[len(topX)-3] + topX[len(topX)-2] + topX[len(topX)-1]
+	fmt.Println(topThree)
 }
